@@ -1,4 +1,28 @@
 
+##################################
+# 
+# Author: Sofia Gil-Clavel
+#
+# Acknowledgments: 
+#       Tyler Bruefach
+#       Feinuo Sun, and 
+#       Jennifer Suilteanu
+#       
+# Date: Last update February 11th, 2022
+# 
+# Description: Code to create the graphs used for the 
+#              second CAnD3 Briefing Note:
+#              "ASSESSING HOW CVD IMPACTS ON CANADIANS’ 
+#                WELLBEING DEPEND ON SEX AND GEOGRAPHY"
+# 
+# Computer Environment:
+#   - Windows 
+#   - R version 4.1.1 (2021-08-10)
+#   - Rstudio (1.4.1717)
+#   - Microsoft Windows 10 Enterprise
+#   
+##################################
+
 library(geofacet)
 library(ggplot2)
 
