@@ -114,7 +114,10 @@ DATA2%>%
                        direction = -1)+
   theme(axis.text.x = element_text(angle = 90))+
   labs(y="heart disease/ Blood pressure",x="Self-perceived health")+
-  guides(fill=guide_colorbar(title="ratio"))
+  guides(fill=guide_colorbar(title="Male/Female"))
+
+ggsave("PROCESSED_DATA/IMAGES/CVD_MF_ratio.png",
+       width = 20,height = 10,units = "cm")
 
 # From those that have a heart disease without facet_geo
 DATA2%>%
