@@ -20,11 +20,19 @@
 #   - R version 4.1.1 (2021-08-10)
 #   - Rstudio (1.4.1717)
 #   - Microsoft Windows 10 Enterprise
-#   
+# 
+# R packages version:
+#   - geofacet (0.2.0)
+#   - ggplot (3.3.5)
+#   - tidyr (1.1.3)
+#   - dplyr (1.0.7)
+#
 ##################################
 
 library(geofacet)
 library(ggplot2)
+library(tidyr)
+library(dplyr)
 
 rm(list=ls())
 gc()
