@@ -1,34 +1,4 @@
 
-##################################
-# 
-# Author: Sofia Gil-Clavel
-#
-# Acknowledgments: 
-#       Tyler Bruefach
-#       Feinuo Sun, and 
-#       Jennifer Suilteanu
-#       
-# Date: Last update February 11th, 2022
-# 
-# Description: Code to create the graphs used for the 
-#              second CAnD3 Briefing Note:
-#              "ASSESSING HOW CVD IMPACTS ON CANADIANS’ 
-#                WELLBEING DEPEND ON SEX AND GEOGRAPHY"
-# 
-# Computer Environment:
-#   - Windows 
-#   - R version 4.1.1 (2021-08-10)
-#   - Rstudio (1.4.1717)
-#   - Microsoft Windows 10 Enterprise
-# 
-# R packages version:
-#   - geofacet (0.2.0)
-#   - ggplot (3.3.5)
-#   - tidyr (1.1.3)
-#   - dplyr (1.0.7)
-#
-##################################
-
 library(geofacet)
 library(ggplot2)
 library(tidyr)
@@ -36,6 +6,10 @@ library(dplyr)
 
 rm(list=ls())
 gc()
+
+#### Codes to merge data with grid ####
+
+GRID_CODES<-read.csv("PROCESSED_DATA/CODES_4_GRID2.csv")
 
 #### Canadian grid
 "ca_prov_grid1"
@@ -46,12 +20,16 @@ new_ca_prov_grid1<-ca_prov_grid1
 new_ca_prov_grid1[1,]<-c(1,2,"YT/NT/NU","YUKON/NWT/NUNA")
 new_ca_prov_grid1<-new_ca_prov_grid1[-c(2,3),]
 
+new_ca_prov_grid1<-new_ca_prov_grid1%>%
+  right_join(GRID_CODES)
 
-#### Codes to merge data with grid ####
-
-GRID_CODES<-read.csv("PROCESSED_DATA/CODES_4_GRID2.csv")
+new_ca_prov_grid1<-new_ca_prov_grid1[,-c(4,6,7)]
+colnames(new_ca_prov_grid1)[4]<-"name"
 
 #### Open the Data ####
+GRID_CODES<-GRID_CODES[,-2]
+colnames(GRID_CODES)[2]<-"name"
+
 DATA<-read.csv("DATA/CCHS - CSV/cchs-82M0013-E-2014-Annual-component_F1.csv")
 
 CODES<-read.csv("DATA/Variable_Labels.csv")
@@ -78,109 +56,59 @@ DATA2<-DATA2%>%
 
 ### Graph ####
 
-DATA2%>%
-  group_by(code,DHH_SEX,DHHGMS)%>%
-  filter(!DHHGMS%in%c(" DON'T KNOW ", " REFUSAL "," NOT STATED "))%>%
-  count(wt = WTS_M)%>%
-  group_by(code)%>%
-  mutate(per=n/sum(n))%>%
-  ggplot(aes(DHHGMS,per,fill=DHH_SEX)) +
-  geom_col(position = position_dodge()) +
-  facet_geo(~ code, grid = new_ca_prov_grid1)+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 90))
-
-UNIQ_CODES
-
 # From those that have a heart disease
 # CCC_071: Has high blood pressure
 DATA2%>%
-  group_by(code,name,DHH_SEX,GEN_01,CCC_121,CCC_071)%>%
+  group_by(DHH_SEX,GEN_01,CCC_121)%>%
   filter(!GEN_01%in%c(" DON'T KNOW ", " REFUSAL "," NOT STATED "),
-         !CCC_121%in%c(" DON'T KNOW ", " REFUSAL "," NOT STATED "),
-         !CCC_071%in%c(" DON'T KNOW ", " REFUSAL "," NOT STATED "))%>%
+         !CCC_121%in%c(" DON'T KNOW ", " REFUSAL "," NOT STATED "))%>%
   count(wt = WTS_M)%>%
   ungroup()%>%
-  group_by(code,name,DHH_SEX)%>%
+  group_by(DHH_SEX,CCC_121)%>%
   spread(DHH_SEX,n)%>%
-  mutate(ratio=` MALE `/` FEMALE `)%>%
+  mutate(men=` MALE `/sum(` MALE `,na.rm = TRUE),
+         women=` FEMALE `/sum(` FEMALE `,na.rm = TRUE))%>%
+  mutate(ratio=round(100*men)/round(100*women))%>%
   ggplot() +
-  geom_tile(aes(GEN_01,paste0(CCC_121,CCC_071),fill=log(ratio)))+
+  geom_tile(aes(GEN_01,paste(CCC_121),fill=log(ratio)))+
   coord_flip()+
-  facet_geo(~ code,grid = new_ca_prov_grid1)+
+  geom_text(aes(GEN_01,paste(CCC_121),
+                label=paste0(round(100*men),"% / ",round(100*women),"%")))+
   theme_bw()+
   scale_x_discrete(limits=rev)+
-  scale_fill_distiller(palette = "RdBu",
-                       direction = -1)+
-  theme(axis.text.x = element_text(angle = 90))+
-  labs(y="heart disease/ Blood pressure",x="Self-perceived health")+
-  guides(fill=guide_colorbar(title="Male/Female"))
+  scale_fill_gradient2()+
+  labs(y="heart disease",x="Self-perceived health")+
+  guides(fill=guide_colorbar(title="log(M/W)"))
 
 ggsave("PROCESSED_DATA/IMAGES/CVD_MF_ratio.png",
        width = 20,height = 10,units = "cm")
 
-# From those that have a heart disease without facet_geo
+### Plots by Geo
+
 DATA2%>%
   group_by(code,name,DHH_SEX,GEN_01,CCC_121)%>%
   filter(!GEN_01%in%c(" DON'T KNOW ", " REFUSAL "," NOT STATED "),
-         !CCC_121%in%c(" NO "," DON'T KNOW ", " REFUSAL "," NOT STATED "))%>%
+         !CCC_121%in%c(" DON'T KNOW ", " REFUSAL "," NOT STATED "))%>%
   count(wt = WTS_M)%>%
   ungroup()%>%
-  group_by(code,name,DHH_SEX)%>%
-  mutate(per=n/sum(n))%>%
+  group_by(code,name,DHH_SEX,CCC_121)%>%
+  spread(DHH_SEX,n)%>%
+  mutate(men=` MALE `/sum(` MALE `,na.rm = TRUE),
+         women=` FEMALE `/sum(` FEMALE `,na.rm = TRUE))%>%
+  mutate(ratio=round(100*men)/round(100*women))%>%
   ggplot() +
-  geom_col(aes(GEN_01,per))+
-  facet_grid(DHH_SEX~name)+
-  theme_bw()+
-  scale_x_discrete(limits=rev)+
-  scale_fill_distiller(palette = "Spectral",
-                       direction = -1)+
-  theme(axis.text.x = element_text(angle = 90))+
-  labs(y="Sex",x="Self-perceived health")+
-  guides(fill=guide_colorbar(title="%"))
-
-# From those that have a heart disease and immigrant
-DATA2%>%
-  group_by(code,DHH_SEX,GEN_01,CCC_121,SDCFIMM)%>%
-  filter(!GEN_01%in%c(" DON'T KNOW ", " REFUSAL "," NOT STATED "),
-         !SDCFIMM%in%c(" DON'T KNOW ", " REFUSAL "," NOT STATED "),
-         !CCC_121%in%c(" NO "," DON'T KNOW ", " REFUSAL "," NOT STATED "))%>%
-  count(wt = WTS_M)%>%
-  ungroup()%>%
-  group_by(code,DHH_SEX,SDCFIMM)%>%
-  mutate(per=n/sum(n))%>%
-  ggplot() +
-  geom_tile(aes(GEN_01,paste0(DHH_SEX,"/","Immig:",SDCFIMM),
-                fill=100*per))+
+  geom_tile(aes(GEN_01,paste(CCC_121),fill=log(ratio)))+
   coord_flip()+
-  facet_geo(~ code,grid = new_ca_prov_grid1)+
+  geom_text(aes(GEN_01,paste(CCC_121),
+                label=paste0(round(100*men),"/",round(100*women))))+
   theme_bw()+
   scale_x_discrete(limits=rev)+
-  scale_fill_distiller(palette = "Spectral",
-                       direction = -1)+
-  theme(axis.text.x = element_text(angle = 90))+
-  labs(y="Sex",x="Self-perceived health")+
-  guides(fill=guide_colorbar(title="%"))
+  facet_geo(~ name,grid = new_ca_prov_grid1)+
+  scale_fill_gradient2()+
+  theme(text = element_text(size = 13))+
+  labs(y="heart disease",x="Self-perceived health")+
+  guides(fill=guide_colorbar(title="log(M/W)"))
 
-# without Facet_Geo
-DATA2%>%
-  group_by(code,name,DHH_SEX,GEN_01,CCC_121,SDCFIMM)%>%
-  filter(!GEN_01%in%c(" DON'T KNOW ", " REFUSAL "," NOT STATED "),
-         !SDCFIMM%in%c(" DON'T KNOW ", " REFUSAL "," NOT STATED "),
-         !CCC_121%in%c(" NO "," DON'T KNOW ", " REFUSAL "," NOT STATED "))%>%
-  count(wt = WTS_M)%>%
-  ungroup()%>%
-  group_by(code,name,DHH_SEX,SDCFIMM)%>%
-  mutate(per=n/sum(n))%>%
-  ggplot() +
-  geom_tile(aes(GEN_01,SDCFIMM,
-                fill=100*per))+
-  coord_flip()+
-  facet_grid(DHH_SEX~name)+
-  theme_bw()+
-  scale_x_discrete(limits=rev)+
-  scale_fill_distiller(palette = "Spectral",
-                       direction = -1)+
-  theme(axis.text.x = element_text(angle = 90))+
-  labs(y="Sex",x="Self-perceived health")+
-  guides(fill=guide_colorbar(title="%"))
+ggsave("PROCESSED_DATA/IMAGES/CVD_MF_GEO_ratio.png",
+       width = 35,height = 18,units = "cm")
+
