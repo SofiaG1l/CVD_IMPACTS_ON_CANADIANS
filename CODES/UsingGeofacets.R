@@ -1,4 +1,32 @@
 
+##################################
+# 
+# Author: Sofia Gil-Clavel
+# 
+# Acknowledgments:
+#    - Tyler Bruefach
+#    - Feinuo Sun
+#    - Jennifer Suilteanu
+# 
+# Date: February 16th, 2022.
+# 
+# Description: Code to replicate graphs used for the second CAnD3 Briefing Note:
+#   "ASSESSING HOW CVD IMPACTS ON CANADIANS’ WELLBEING DEPEND ON SEX AND GEOGRAPHY"
+# 
+# Computer Environment:
+#   - Windows 
+#   - R - 4.1.1 (2021)
+#   - Rstudio (1.4.1717)
+#   - Microsoft Windows 10 Enterprise
+# 
+# R Packages:
+#   - geofacet (0.2.0) 
+#   - ggplot2 (3.3.5)
+#   - tidyr (1.1.3)
+#   - dplyr (1.0.7)
+# 
+##################################
+
 library(geofacet)
 library(ggplot2)
 library(tidyr)
@@ -8,30 +36,35 @@ rm(list=ls())
 gc()
 
 #### Codes to merge data with grid ####
-
+# Hand-made database generated to match the Canadian Community Health Survey, 2014
+# provinces and the geofacet package canadian grid.
 GRID_CODES<-read.csv("PROCESSED_DATA/CODES_4_GRID2.csv")
 
-#### Canadian grid
+#### Canadian grid:
 "ca_prov_grid1"
 
-# new_ca_prov_grid1<-read.csv("PROCESSED_DATA/CODES_4_GRID3.csv")
-
+# Aggregating some of the North provinces:
 new_ca_prov_grid1<-ca_prov_grid1
 new_ca_prov_grid1[1,]<-c(1,2,"YT/NT/NU","YUKON/NWT/NUNA")
 new_ca_prov_grid1<-new_ca_prov_grid1[-c(2,3),]
 
+# Merging with GRID_CODES
 new_ca_prov_grid1<-new_ca_prov_grid1%>%
   right_join(GRID_CODES)
 
+# Removing some columns and renaming provinces names
 new_ca_prov_grid1<-new_ca_prov_grid1[,-c(4,6,7)]
 colnames(new_ca_prov_grid1)[4]<-"name"
 
-#### Open the Data ####
+# Removing some columns and renaming provinces names
 GRID_CODES<-GRID_CODES[,-2]
 colnames(GRID_CODES)[2]<-"name"
 
-DATA<-read.csv("DATA/CCHS - CSV/cchs-82M0013-E-2014-Annual-component_F1.csv")
+# Open the Canadian Community Health Survey, 2014
+DATA<-read.csv("DATA/cchs-82M0013-E-2014-Annual-component_F1.csv")
 
+# Codes is a hand-made csv with some variables and codes in the:
+# Canadian Community Health Survey, 2014: Annual Component
 CODES<-read.csv("DATA/Variable_Labels.csv")
 
 UNIQ_CODES<-unique(CODES$VARIABLE)
@@ -47,8 +80,6 @@ for(cc in UNIQ_CODES){
   DATA2[,cc]<-droplevels(DATA2[,cc])
 }
 
-DATA2$GEOGPRV2=DATA$GEOGPRV
-DATA2$GEODPMF2=DATA$GEODPMF
 
 ## The codes for Yukon, Northwest, and Nunavut will repeat
 DATA2<-DATA2%>%
@@ -56,8 +87,10 @@ DATA2<-DATA2%>%
 
 ### Graph ####
 
-# From those that have a heart disease
+# DHH_SEX: Sex
+# GEN_01: Self-perceived health
 # CCC_071: Has high blood pressure
+
 DATA2%>%
   group_by(DHH_SEX,GEN_01,CCC_121)%>%
   filter(!GEN_01%in%c(" DON'T KNOW ", " REFUSAL "," NOT STATED "),
@@ -80,6 +113,7 @@ DATA2%>%
   labs(y="heart disease",x="Self-perceived health")+
   guides(fill=guide_colorbar(title="log(M/W)"))
 
+# Save the graph
 ggsave("PROCESSED_DATA/IMAGES/CVD_MF_ratio.png",
        width = 20,height = 10,units = "cm")
 
@@ -109,5 +143,8 @@ DATA2%>%
   labs(y="heart disease",x="Self-perceived health")+
   guides(fill=guide_colorbar(title="log(M/W)"))
 
+# Save the graph
 ggsave("PROCESSED_DATA/IMAGES/CVD_MF_GEO_ratio.png",
        width = 45,height = 23,units = "cm")
+
+
