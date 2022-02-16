@@ -100,7 +100,7 @@ DATA2%>%
   geom_tile(aes(GEN_01,paste(CCC_121),fill=log(ratio)))+
   coord_flip()+
   geom_text(aes(GEN_01,paste(CCC_121),
-                label=paste0(round(100*men),"/",round(100*women))))+
+                label=paste0(round(100*men),"%/ ",round(100*women),"%")))+
   theme_bw()+
   scale_x_discrete(limits=rev)+
   facet_geo(~ name,grid = new_ca_prov_grid1)+
@@ -110,5 +110,4 @@ DATA2%>%
   guides(fill=guide_colorbar(title="log(M/W)"))
 
 ggsave("PROCESSED_DATA/IMAGES/CVD_MF_GEO_ratio.png",
-       width = 35,height = 18,units = "cm")
-
+       width = 45,height = 23,units = "cm")
